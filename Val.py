@@ -4,7 +4,7 @@ Created on Fri Jul 20 20:06:33 2018
 
 @author: poppinace
 """
-
+import matplotlib.pyplot as plt
 import torch.nn as nn
 import torch
 import torch.optim as optim
@@ -32,6 +32,7 @@ def test_phase(opt,net,testloader,log_save_path=None):
         mae = 0.0
         rmse = 0.0
         me = 0.0
+        gt_vals = []
 
         for j, data in enumerate(testloader):
             inputs , labels = data['image'], data['target']
@@ -47,6 +48,7 @@ def test_phase(opt,net,testloader,log_save_path=None):
          
             pre =  (outputs).sum()
             gt = labels.sum()
+            gt_vals.append(int(gt.item()))
                                              
             mae += abs(pre-gt)
             rmse += (pre-gt)*(pre-gt)
@@ -63,6 +65,9 @@ def test_phase(opt,net,testloader,log_save_path=None):
         log_str =  '%10s\t %8s\t &%8s\t &%8s\t\\\\' % (' ','mae','rmse','me')+'\n'
         log_str += '%-10s\t %8.3f\t %8.3f\t %8.3f\t' % ( 'test',mae/(j+1),math.sqrt(rmse/(j+1)),me/(j+1) ) + '\n'
             
+        plt.hist(gt_vals, bins=5)
+        plt.show()
+                
         if log_save_path:
             txt_write(log_save_path,log_str,mode='w')
         
