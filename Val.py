@@ -32,7 +32,7 @@ def test_phase(opt,net,testloader,log_save_path=None):
         mae = 0.0
         rmse = 0.0
         me = 0.0
-        gt_vals = []
+        gt_vals, errors = [], []
 
         for j, data in enumerate(testloader):
             inputs , labels = data['image'], data['target']
@@ -48,8 +48,10 @@ def test_phase(opt,net,testloader,log_save_path=None):
          
             pre =  (outputs).sum()
             gt = labels.sum()
+            gt_int, pre_int = int(gt.item()), (outputs).sum().item()
             gt_vals.append(int(gt.item()))
-                                             
+            errors.append(gt_int - pre_int)
+
             mae += abs(pre-gt)
             rmse += (pre-gt)*(pre-gt)
             me += (pre-gt)
@@ -65,28 +67,13 @@ def test_phase(opt,net,testloader,log_save_path=None):
         log_str =  '%10s\t %8s\t &%8s\t &%8s\t\\\\' % (' ','mae','rmse','me')+'\n'
         log_str += '%-10s\t %8.3f\t %8.3f\t %8.3f\t' % ( 'test',mae/(j+1),math.sqrt(rmse/(j+1)),me/(j+1) ) + '\n'
             
-        plt.hist(gt_vals, bins=[0, 30, 80, 250, 500, 800, 3000])
-        plt.show()
-                
+        # Write to file
+        save_array = np.array([gt_vals, errors])
+        np.savetxt('error_data_{}.out'.format(opt['trained_model_path'][-3:]), save_array, delimiter=',')
+
         if log_save_path:
             txt_write(log_save_path,log_str,mode='w')
         
     im_num = len(testloader)
 
     return mae/(im_num), math.sqrt(rmse/(im_num)),  me/(im_num)
-
-
-
-
-
-    
-
-
-
-
-
-
- 
-
-
-
