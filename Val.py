@@ -65,7 +65,7 @@ def test_phase(opt,net,testloader,log_save_path=None):
         log_str =  '%10s\t %8s\t &%8s\t &%8s\t\\\\' % (' ','mae','rmse','me')+'\n'
         log_str += '%-10s\t %8.3f\t %8.3f\t %8.3f\t' % ( 'test',mae/(j+1),math.sqrt(rmse/(j+1)),me/(j+1) ) + '\n'
             
-        plt.hist(gt_vals, bins=5)
+        plt.hist(gt_vals, bins=[30, 80, 250])
         plt.show()
                 
         if log_save_path:
