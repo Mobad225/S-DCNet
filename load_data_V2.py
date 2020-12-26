@@ -56,7 +56,10 @@ class myDataset(Dataset):
         
         
         img_name = os.path.join(self.img_dir,'*.jpg')
+        # This will get a list of all files with names {self.img_dir}*.jpg in ARBITRARY order
         self.filelist =  glob.glob(img_name)
+        # This will sort the list with the number in the image name 
+        self.filelist = sorted(self.filelist, key= lambda x: int(x[len(self.img_dir) + 5:-4]))
         self.dataset_len = len(self.filelist)
         
         # for test process, load data is different
