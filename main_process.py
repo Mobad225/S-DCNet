@@ -28,6 +28,7 @@ def main(opt):
     dataset = opt['dataset']
     root_dir = opt['root_dir']
     num_workers = opt['num_workers']
+    test = opt['test']
 
     img_subsubdir = 'images'; tar_subsubdir = 'gtdens'
     dataset_transform = ToTensor()
@@ -49,10 +50,13 @@ def main(opt):
 
     #test settings
     img_dir = os.path.join(root_dir,'test',img_subsubdir)
-    tar_dir = os.path.join(root_dir,'test',tar_subsubdir)
+    if test is False:
+        tar_dir = os.path.join(root_dir,'test',tar_subsubdir)
+    else:
+        tar_dir = None
     rgb_dir = os.path.join(root_dir,'rgbstate.mat')
-    testset = myDataset(img_dir,tar_dir,rgb_dir,transform=dataset_transform,\
-        if_test=True, IF_loadmem=opt['IF_savemem_test'])
+    testset = myDataset(img_dir=img_dir,tar_dir=tar_dir,rgb_dir=rgb_dir,\
+        transform=dataset_transform, if_test=True, IF_loadmem=opt['IF_savemem_test'])
     testloader = DataLoader(testset, batch_size=opt['test_batch_size'],
                             shuffle=False, num_workers=num_workers)
 
@@ -74,6 +78,7 @@ def main(opt):
         # test
         mae,rmse,me = test_phase(opt,net,testloader,log_save_path=log_save_path)
 
-        log_str = '%10s\t %8s\t &%8s\t &%8s\t\\\\' % (' ','mae','rmse','me')+'\n'
-        log_str+= '%-10s\t %8.3f\t %8.3f\t %8.3f\t' % ( 'test',mae,rmse,me ) + '\n'
-        print(log_str)
+        if test is False:
+            log_str = '%10s\t %8s\t &%8s\t &%8s\t\\\\' % (' ','mae','rmse','me')+'\n'
+            log_str+= '%-10s\t %8.3f\t %8.3f\t %8.3f\t' % ( 'test',mae,rmse,me ) + '\n'
+            print(log_str)

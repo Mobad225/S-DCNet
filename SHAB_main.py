@@ -10,8 +10,11 @@ if __name__ == '__main__':
     opt = dict()
 
     dataset_list = {0:'SH_partA_Density_map',1:'SH_partB_Density_map'}
+    #dataset_list = {0:'SH_partA_Density_map'}
     model_list = {0:'model/SHA',1:'model/SHB'}
     max_num_list = {0:22,1:7}
+
+    opt['test'] = True
 
     # step1: Create root path for dataset
     opt['num_workers'] = 0

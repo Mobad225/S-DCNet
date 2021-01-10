@@ -73,6 +73,7 @@ class myDataset(Dataset):
         # ------------------------------------
         # 1. see if load from disk or memory
         # ------------------------------------
+        # Always in
         if (not self.IF_loadmem) or (not self.IF_loadFinished): 
             img_name =self.filelist[idx]
             image = io.imread(img_name) #load as numpy ndarray
@@ -81,9 +82,12 @@ class myDataset(Dataset):
             (filepath,tempfilename) = os.path.split(img_name)
             (name,extension) = os.path.splitext(tempfilename)
             
-            mat_dir = os.path.join( self.tar_dir, '%s.mat' % (name) )
-            mat = sio.loadmat(mat_dir)
+            if self.tar_dir is not None:
+                mat_dir = os.path.join( self.tar_dir, '%s.mat' % (name) )
+                mat = sio.loadmat(mat_dir)
 
+            # ~~~~~~~~~~~~~~~~Never in here
+            # Might need to check if we change something and face error.
             # if need to save in memory
             if self.IF_loadmem:
                 self.image_mem.append(image)
@@ -91,13 +95,15 @@ class myDataset(Dataset):
                 # updata if load finished
                 if len(self.image_mem) == self.dataset_len:
                     self.IF_loadFinished = True
-
+        
         else:
             image = self.image_mem[idx]
             mat = self.target_mem[idx]
             #target = mat['target']
         
         # for train may need pre load
+        # ~~~~~~~~~~~~~~~~Never in here
+        # Might need to check if we change something and face error.
         if not self.if_test:
             target = mat['crop_gtdens']
             sample = {'image': image, 'target': target}
@@ -106,16 +112,32 @@ class myDataset(Dataset):
 
             # pad the image
             sample['image'],sample['target'] = get_pad(sample['image'],DIV=64),get_pad(sample['target'],DIV=64)
+        
+        # Always in 
         else:
-            target = mat['all_num']
-            sample = {'image': image, 'target': target}
+            if self.tar_dir is not None:
+                target = mat['all_num']
+            else:
+              target = None
+            
+            if target is not None:
+                sample = {'image': image, 'target': target}
+            else:
+                sample = {'image': image}
+
             if self.transform:
                 sample = self.transform(sample)
-            sample['density_map'] = torch.from_numpy(mat['density_map'])
+            
+            if self.tar_dir is not None:
+                sample['density_map'] = torch.from_numpy(mat['density_map'])
+            #else:
+                #sample['density_map'] = None
 
             # pad the image
-            sample['image'],sample['density_map'] = get_pad(sample['image'],DIV=64),get_pad(sample['density_map'],DIV=64)
+            sample['image'] = get_pad(sample['image'],DIV=64)
 
+            if self.tar_dir is not None:
+                sample['density_map'] = get_pad(sample['density_map'],DIV=64)
         return sample
     
     
@@ -124,18 +146,32 @@ class ToTensor(object):
     """Convert ndarrays in sample to Tensors."""
 
     def __call__(self, sample):
-        image, target = sample['image'], sample['target']
+        test = True
 
+        tar = sample.get('target')
+        if tar is not None:
+            test = False
+
+        if test is False:
+            image, target = sample['image'], sample['target']
+        else:
+            image = sample['image']
         # swap color axis because
         # numpy image: H x W x C
         # torch image: C X H X W
         image = image.transpose((2, 0, 1))
-        return {'image': torch.from_numpy(image),
-                'target': torch.from_numpy(target)}
+
+        if test is False:
+            return {'image': torch.from_numpy(image),
+                    'target': torch.from_numpy(target)}
+
+        return {'image': torch.from_numpy(image)}
 
 
 ######################################################################
 def get_pad(inputs,DIV=64):
+    if inputs is None:
+      return None
     h,w = inputs.size()[-2:]
     ph,pw = (DIV-h%DIV),(DIV-w%DIV)
     # print(ph,pw)

@@ -32,48 +32,84 @@ def test_phase(opt,net,testloader,log_save_path=None):
         mae = 0.0
         rmse = 0.0
         me = 0.0
+        test = True
         gt_vals, errors = [], []
 
         for j, data in enumerate(testloader):
-            inputs , labels = data['image'], data['target']
-            inputs,labels = inputs.type(torch.float32),labels.unsqueeze(1).type(torch.float32)
-            inputs, labels = inputs.cuda(), labels.cuda()
+            tar = data.get('target')
             
+            if tar is not None:
+                test = False
 
-            features = net(inputs)
-            div_res = net.resample(features)
-            merge_res = net.parse_merge(div_res)
-            outputs = merge_res['div'+str(net.args['div_times'])]
-            del merge_res
-         
-            pre =  (outputs).sum()
-            gt = labels.sum()
-            gt_int, pre_int = int(gt.item()), (outputs).sum().item()
-            gt_vals.append(int(gt.item()))
-            errors.append(gt_int - pre_int)
+            inputs = data['image']
+            if test is False:
+                labels = data['target']
 
-            mae += abs(pre-gt)
-            rmse += (pre-gt)*(pre-gt)
-            me += (pre-gt)
-            end = time()
-            running_frame_rate = opt['test_batch_size'] * float( 1 / (end - start))
-            avg_frame_rate = (avg_frame_rate*j + running_frame_rate)/(j+1)
-            if j % 1 == 0:    # print every 2000 mini-batches
-                print('Test:[%5d/%5d] pre: %.3f gt:%.3f err:%.3f frame: %.2fHz/%.2fHz' %
-                        ( j + 1,len(testloader), pre, gt,pre-gt,
-                        running_frame_rate,avg_frame_rate) )
-                start = time()
+            if test is True:
+                inputs = inputs.type(torch.float32)
+                inputs = inputs.cuda()
+
+                features = net(inputs)
+                div_res = net.resample(features)
+                merge_res = net.parse_merge(div_res)
+                outputs = merge_res['div'+str(net.args['div_times'])]
+                del merge_res
+
+                pre =  (outputs).sum()
+
+                end = time()
+                running_frame_rate = opt['test_batch_size'] * float( 1 / (end - start))
+                avg_frame_rate = (avg_frame_rate*j + running_frame_rate)/(j+1)
+
+                if j % 1 == 0:    # print every 2000 mini-batches
+                    print('Test:[%5d/%5d] pre: %.3f frame: %.2fHz/%.2fHz' %
+                            ( j + 1,len(testloader), pre,
+                            running_frame_rate,avg_frame_rate) )
+                    start = time()
+
+            else:
+                inputs,labels = inputs.type(torch.float32),labels.unsqueeze(1).type(torch.float32)
+                inputs, labels = inputs.cuda(), labels.cuda()
+                
+
+                features = net(inputs)
+                div_res = net.resample(features)
+                merge_res = net.parse_merge(div_res)
+                outputs = merge_res['div'+str(net.args['div_times'])]
+                del merge_res
+            
+                pre =  (outputs).sum()
+                gt = labels.sum()
+                gt_int, pre_int = int(gt.item()), (outputs).sum().item()
+                gt_vals.append(int(gt.item()))
+                errors.append(gt_int - pre_int)
+
+                mae += abs(pre-gt)
+                rmse += (pre-gt)*(pre-gt)
+                me += (pre-gt)
+                end = time()
+                running_frame_rate = opt['test_batch_size'] * float( 1 / (end - start))
+                avg_frame_rate = (avg_frame_rate*j + running_frame_rate)/(j+1)
+                if j % 1 == 0:    # print every 2000 mini-batches
+                    print('Test:[%5d/%5d] pre: %.3f gt:%.3f err:%.3f frame: %.2fHz/%.2fHz' %
+                            ( j + 1,len(testloader), pre, gt,pre-gt,
+                            running_frame_rate,avg_frame_rate) )
+                    start = time()
         
-        log_str =  '%10s\t %8s\t &%8s\t &%8s\t\\\\' % (' ','mae','rmse','me')+'\n'
-        log_str += '%-10s\t %8.3f\t %8.3f\t %8.3f\t' % ( 'test',mae/(j+1),math.sqrt(rmse/(j+1)),me/(j+1) ) + '\n'
+        if test is False:
+            log_str =  '%10s\t %8s\t &%8s\t &%8s\t\\\\' % (' ','mae','rmse','me')+'\n'
+            log_str += '%-10s\t %8.3f\t %8.3f\t %8.3f\t' % ( 'test',mae/(j+1),math.sqrt(rmse/(j+1)),me/(j+1) ) + '\n'
             
-        # Write to file
-        save_array = np.array([gt_vals, errors])
-        np.savetxt('error_data_{}.out'.format(opt['trained_model_path'][-3:]), save_array, delimiter=',')
+            # Write to file
+            save_array = np.array([gt_vals, errors])
+            np.savetxt('error_data_{}.out'.format(opt['trained_model_path'][-3:]), save_array, delimiter=',')
 
-        if log_save_path:
+        if log_save_path and test is False:
             txt_write(log_save_path,log_str,mode='w')
         
     im_num = len(testloader)
+
+    if test is True:
+        return -1, -1, -1
 
     return mae/(im_num), math.sqrt(rmse/(im_num)),  me/(im_num)
