@@ -33,7 +33,7 @@ warnings.filterwarnings("ignore")
 class myDataset(Dataset):
     """dataset. also can be used for annotation like density map"""
 
-    def __init__(self, img_dir,tar_dir, rgb_dir,transform=None,if_test = False,\
+    def __init__(self, img_dir,tar_dir=None, rgb_dir=None,transform=None,if_test = False,\
         IF_loadmem=False):
         """
         Args:
